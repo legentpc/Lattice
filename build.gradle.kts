@@ -77,10 +77,10 @@ cloche {
         }
     }
 
-    fun createFabric(commonTarget: CommonTarget, version: String) {
+    fun createFabric(commonTarget: CommonTarget, version: String, fabricLoader: String) {
         fabric("fabric:${version}") {
             minecraftVersion = version
-            loaderVersion = "0.17.2"
+            loaderVersion = fabricLoader
 
             dependsOn(commonTarget)
 
@@ -112,9 +112,9 @@ cloche {
         }
     }
 
-    fun createAll(version: String, forgeVersion: String?, neoforgeVersion: String?) {
+    fun createAll(version: String, fabricLoader: String, forgeVersion: String?, neoforgeVersion: String?) {
         val common = createCommon(version)
-        createFabric(common, version)
+        createFabric(common, version, fabricLoader)
         if (forgeVersion != null) {
             createForge(common, version, forgeVersion)
         }
@@ -126,16 +126,16 @@ cloche {
     // todo: forge 1.20.6+ has an issue with mappings
     // todo: neoforge 1.20.2 has an issue with dependency resolution
     // todo: neoforge 1.20.1 doesn't exist... maybe can workaround
-    createAll("1.20.1", null, null)
-    createAll("1.20.2", null, null)//"20.2.93")
-    createAll("1.20.4", null, null)//"20.4.248")
-    createAll("1.20.6", null, null)//"20.6.136")
-    createAll("1.21.1", null, null)//"21.1.193")
-    createAll("1.21.3", null, null)//"21.3.86")
-    createAll("1.21.4", null, null)//"21.4.147")
-    createAll("1.21.5", null, null)//"21.5.87")
-    createAll("1.21.6", null, null)//"21.6.20-beta")
-    createAll("1.21.9", null, null)
+    createAll("1.20.1", "0.14.21", null, null)
+    createAll("1.20.2", "0.16.14", null, null)//"20.2.93")
+    createAll("1.20.4", "0.16.14", null, null)//"20.4.248")
+    createAll("1.20.6", "0.16.14", null, null)//"20.6.136")
+    createAll("1.21.1", "0.16.14", null, null)//"21.1.193")
+    createAll("1.21.3", "0.16.14", null, null)//"21.3.86")
+    createAll("1.21.4", "0.16.14", null, null)//"21.4.147")
+    createAll("1.21.5", "0.16.14", null, null)//"21.5.87")
+    createAll("1.21.6", "0.16.14", null, null)//"21.6.20-beta")
+    createAll("1.21.9", "0.17.2", null, null)
 }
 
 tasks.register<Jar>("buildMergedFabric") {

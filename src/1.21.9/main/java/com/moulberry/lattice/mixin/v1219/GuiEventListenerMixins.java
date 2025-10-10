@@ -40,12 +40,12 @@ public abstract class GuiEventListenerMixins {
 
         @Override
         public boolean lattice$hasShiftDown() {
-            return ((KeyEvent)(Object)this).hasShiftDown();
+            return ((MouseButtonEvent)(Object)this).hasShiftDown();
         }
 
         @Override
         public boolean lattice$hasCtrlOrCmdDown() {
-            return ((KeyEvent)(Object)this).hasControlDown();
+            return ((MouseButtonEvent)(Object)this).hasControlDown();
         }
 
         @Override
