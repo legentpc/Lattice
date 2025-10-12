@@ -8,7 +8,7 @@
     "MixinDropdownWidget",
     "MixinLatticeConfigScreen",
     "MixinWidgetWithText",
-    "multiversion.MixinMouseScrolled",
+    "multiversion.MixinMouseScrolled"
   ],
   "injectors": {
     "defaultRequire": 1
