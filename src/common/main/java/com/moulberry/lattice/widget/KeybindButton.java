@@ -5,6 +5,7 @@ import com.moulberry.lattice.keybind.LatticeInputType;
 import com.moulberry.lattice.multiversion.LatticeMultiversion;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
@@ -34,6 +35,12 @@ public class KeybindButton extends Button implements WidgetExtraFunctionality {
         this.title = title;
         this.keybindInterface = keybindInterface;
         this.updateMessage();
+    }
+
+    // Required in 1.21.11+
+    public void renderContents(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        // Implemented by MixinButtonRenderContent
+        throw new UnsupportedOperationException();
     }
 
     @Override

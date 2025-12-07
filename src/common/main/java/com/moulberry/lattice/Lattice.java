@@ -21,7 +21,7 @@ public class Lattice {
         performWidgetTest(elements);
 
         Screen screen = createConfigScreen(elements, null, null);
-        screen.init(Minecraft.getInstance(), 480, 270);
+//        screen.init(Minecraft.getInstance(), 480, 270);
     }
 
     private static void performWidgetTest(LatticeElements elements) {

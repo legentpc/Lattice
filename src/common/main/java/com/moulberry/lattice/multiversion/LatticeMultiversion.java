@@ -2,11 +2,14 @@ package com.moulberry.lattice.multiversion;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.MultiLineEditBox;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import org.jetbrains.annotations.ApiStatus;
+
+import java.util.function.Function;
 
 @ApiStatus.Internal
 public class LatticeMultiversion {
@@ -28,6 +31,16 @@ public class LatticeMultiversion {
 
     public static MultiLineEditBox newMultiLineEditBox(Font font, int width, int height, Component title) {
         // Implemented by MixinNewMultiLineEditBox
+        throw new UnsupportedOperationException();
+    }
+
+    public static CycleButton.Builder<Boolean> newCycleButtonOnOffBuilder(boolean initial) {
+        // Implemented by MixinNewCycleButton
+        throw new UnsupportedOperationException();
+    }
+
+    public static <T> CycleButton.Builder<T> newCycleButtonBuilder(Function<T, Component> function, T initial) {
+        // Implemented by MixinNewCycleButton
         throw new UnsupportedOperationException();
     }
 

@@ -22,16 +22,15 @@ public interface WidgetFunction {
     AbstractWidget createWidget(Font font, @NotNull Component title, @Nullable Component description, int width);
 
     static WidgetFunction onOffButton(BooleanSupplier initial, Consumer<Boolean> setter) {
-        return (font, title, description, width) -> CycleButton.onOffBuilder().withInitialValue(initial.getAsBoolean()).create(0, 0, width, 20, title, (cycleButton, bool) -> {
+        return (font, title, description, width) -> LatticeMultiversion.newCycleButtonOnOffBuilder(initial.getAsBoolean()).create(0, 0, width, 20, title, (cycleButton, bool) -> {
             setter.accept(bool);
         });
     }
 
     @SafeVarargs
     static <T> WidgetFunction cycleButton(Supplier<T> initial, Consumer<T> setter, T... values) {
-        return (font, title, description, width) -> CycleButton.<T>builder(v -> Component.literal(v.toString()))
+        return (font, title, description, width) -> LatticeMultiversion.newCycleButtonBuilder(v -> Component.literal(v.toString()), initial.get())
             .withValues(values)
-            .withInitialValue(initial.get())
             .create(0, 0, width, 20, title, (btn, object) -> {
                 setter.accept(object);
             });

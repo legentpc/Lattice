@@ -50,6 +50,11 @@ public class SubcategoryButton extends Button implements WidgetExtraFunctionalit
         }
     }
 
+    // Required in 1.21.11+
+    protected void renderContents(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        // Implemented by MixinButtonRenderContent
+    }
+
     public LatticeElements getSubcategory() {
         return subcategory;
     }
