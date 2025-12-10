@@ -57,7 +57,7 @@ public abstract class DropdownWidget<T> extends Button implements WidgetExtraFun
 
     // Required in 1.21.11+
     protected void renderContents(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        // todo
+        // Implemented by MixinButtonRenderContent
     }
 
     public abstract void setValue(T value);
