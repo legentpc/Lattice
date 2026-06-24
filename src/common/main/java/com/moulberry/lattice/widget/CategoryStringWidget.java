@@ -1,14 +1,12 @@
 package com.moulberry.lattice.widget;
 
 import com.moulberry.lattice.element.LatticeElements;
-import com.moulberry.lattice.multiversion.IGuiEventListener;
-import com.moulberry.lattice.multiversion.IMouseButtonEvent;
-import com.moulberry.lattice.multiversion.LatticeMultiversion;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
@@ -19,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
-public class CategoryStringWidget extends AbstractWidget implements IGuiEventListener, WidgetExtraFunctionality {
+public class CategoryStringWidget extends AbstractWidget implements WidgetExtraFunctionality {
 
     private static final FormattedCharSequence SLASH = FormattedCharSequence.forward("/", Style.EMPTY);
     private final List<LatticeElements> categories;
@@ -36,7 +34,7 @@ public class CategoryStringWidget extends AbstractWidget implements IGuiEventLis
     }
 
     @Override
-    protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    protected void extractWidgetRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         int x = this.getX();
         int y = this.getY() + (this.getHeight() - this.font.lineHeight) / 2;
 
@@ -53,11 +51,11 @@ public class CategoryStringWidget extends AbstractWidget implements IGuiEventLis
                 title = Component.literal(title.getString()).withStyle(ChatFormatting.BLUE).withStyle(ChatFormatting.UNDERLINE);
             }
 
-            LatticeMultiversion.drawString(guiGraphics, this.font, title, x, y, -1);
+            guiGraphics.text(this.font, title, x, y, -1);
 
             if (i < this.categories.size()-1) {
                 x += width + 4;
-                LatticeMultiversion.drawString(guiGraphics, this.font, SLASH, x, y, -1);
+                guiGraphics.text(this.font, SLASH, x, y, -1);
                 if (slashWidth == -1) {
                     slashWidth = this.font.width(SLASH);
                 }
@@ -67,15 +65,15 @@ public class CategoryStringWidget extends AbstractWidget implements IGuiEventLis
     }
 
     @Override
-    public boolean lattice$mouseClicked(IMouseButtonEvent event, BooleanSupplier callSuper) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         this.clickedCategoryPath = null;
 
         int x = this.getX();
         int y = this.getY() + (this.getHeight() - this.font.lineHeight) / 2;
 
-        int mouseButton = event.lattice$button();
-        double mouseX = event.lattice$x();
-        double mouseY = event.lattice$y();
+        int mouseButton = event.button();
+        double mouseX = event.x();
+        double mouseY = event.y();
 
         if (mouseButton == 0 && mouseY >= y && mouseY <= y + this.font.lineHeight) {
             int slashWidth = -1;
@@ -101,13 +99,13 @@ public class CategoryStringWidget extends AbstractWidget implements IGuiEventLis
             }
         }
 
-        return callSuper.getAsBoolean();
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
-    public boolean lattice$mouseReleased(IMouseButtonEvent event, BooleanSupplier callSuper) {
+    public boolean mouseReleased(MouseButtonEvent event) {
         this.clickedCategoryPath = null;
-        return callSuper.getAsBoolean();
+        return super.mouseReleased(event);
     }
 
     @Override

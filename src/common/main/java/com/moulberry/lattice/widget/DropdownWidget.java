@@ -1,16 +1,16 @@
 package com.moulberry.lattice.widget;
 
-import com.moulberry.lattice.multiversion.IGuiEventListener;
-import com.moulberry.lattice.multiversion.IKeyEvent;
-import com.moulberry.lattice.multiversion.IMouseButtonEvent;
-import com.moulberry.lattice.multiversion.LatticeMultiversion;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.layouts.LayoutElement;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.ApiStatus;
@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 @ApiStatus.Internal
@@ -26,10 +27,9 @@ public abstract class DropdownWidget<T> extends Button implements WidgetExtraFun
     private final Component title;
     private final Font font;
     private T currentValue;
-    private final T[] values;
 
     private boolean showingSelectionDropdown = false;
-    private final DropdownSelectionInterface<T> selection;
+    private final DropdownSelection selection;
     private final Map<T, Entry> entryByValue = new HashMap<>();
 
     public DropdownWidget(int x, int y, int width, int height, Font font, Component title, T initialValue, T... values) {
@@ -37,12 +37,11 @@ public abstract class DropdownWidget<T> extends Button implements WidgetExtraFun
         this.font = font;
         this.title = title;
         this.currentValue = initialValue;
-        this.values = values;
 
         int itemHeight = font.lineHeight + 2;
         int contentHeight = values.length * itemHeight + 4;
         int selectionDropdownHeight = Math.min(contentHeight, 100);
-        this.selection = createDropdownSelection(width, selectionDropdownHeight, y, itemHeight, this::isFocused);
+        this.selection = new DropdownSelection(Minecraft.getInstance(), width, selectionDropdownHeight, y, itemHeight);
 
         List<Entry> entries = new ArrayList<>(values.length);
         for (T value : values) {
@@ -55,9 +54,10 @@ public abstract class DropdownWidget<T> extends Button implements WidgetExtraFun
         this.updateMessage();
     }
 
-    // Required in 1.21.11+
-    protected void renderContents(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        // Implemented by MixinButtonRenderContent
+    @Override
+    protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+        this.extractDefaultSprite(graphics);
+        this.extractDefaultLabel(graphics.textRendererForWidget(this, GuiGraphicsExtractor.HoveredTextEffects.NONE));
     }
 
     public abstract void setValue(T value);
@@ -94,23 +94,71 @@ public abstract class DropdownWidget<T> extends Button implements WidgetExtraFun
         }
     }
 
-    public interface DropdownSelectionInterface<T> extends GuiEventListener, LayoutElement {
-        void replaceEntries(Collection<DropdownWidget<T>.Entry> collection);
-        void setWidth(int width);
-        void setFocused(DropdownWidget<T>.Entry entry);
+    private class DropdownSelection extends ObjectSelectionList<Entry> {
+        public DropdownSelection(Minecraft minecraft, int width, int height, int y, int itemHeight) {
+            super(minecraft, width, height, y, itemHeight);
+        }
+
+        private boolean replaceEntries = false;
 
         @Override
-        default ScreenRectangle getRectangle() {
-            return LayoutElement.super.getRectangle();
+        protected void extractListBackground(GuiGraphicsExtractor guiGraphics) {
+            guiGraphics.fill(
+                this.getX(),
+                this.getY(),
+                this.getRight(),
+                this.getBottom(),
+                0xF0101010
+            );
+
+            int minX = this.getX();
+            int minY = this.getY()-1;
+            int maxX = minX+this.getWidth();
+            int maxY = minY+this.getHeight()+2;
+            int colour = DropdownWidget.super.isFocused() ? 0xFFFFFFFF : 0xFF000000;
+            guiGraphics.fill(minX, minY, maxX, minY + 1, colour);
+            guiGraphics.fill(minX, maxY - 1, maxX, maxY, colour);
+            guiGraphics.fill(minX, minY + 1, minX + 1, maxY - 1, colour);
+            guiGraphics.fill(maxX - 1, minY + 1, maxX, maxY - 1, colour);
+
+            if (this.replaceEntries) {
+                this.replaceEntries = false;
+                this.replaceEntries(new ArrayList<>(this.children()));
+            }
+        }
+
+        @Override
+        public void setX(int x) {
+            this.replaceEntries |= x != this.getX();
+            super.setX(x);
+        }
+
+        @Override
+        public void setY(int y) {
+            this.replaceEntries |= y != this.getY();
+            super.setY(y);
+        }
+
+        @Override
+        protected void extractListSeparators(GuiGraphicsExtractor guiGraphics) {
+        }
+
+        @Override
+        public int getRowWidth() {
+            return Math.max(52, this.getWidth()) - 52;
+        }
+
+        @Override
+        protected int scrollBarX() {
+            return this.getRowRight() + 8;
+        }
+
+        @Override
+        public void visitWidgets(Consumer<AbstractWidget> consumer) {
         }
     }
 
-    private static <T> DropdownSelectionInterface<T> createDropdownSelection(int width, int height, int y, int itemHeight, BooleanSupplier isFocused) {
-        // Implemented by MixinDropdownWidget
-        throw new UnsupportedOperationException();
-    }
-
-    public class Entry extends ObjectSelectionList.Entry<Entry> implements IGuiEventListener {
+    public class Entry extends ObjectSelectionList.Entry<Entry> {
         final T value;
         private long lastClickedMillis;
 
@@ -118,24 +166,15 @@ public abstract class DropdownWidget<T> extends Button implements WidgetExtraFun
             this.value = value;
         }
 
-        // For <1.21.9
-        public void render(GuiGraphics guiGraphics, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean hovered, float partialTick) {
-            this.actuallyRender(guiGraphics, x, y);
-        }
-
-        // For >=1.21.9
-        public void renderContent(GuiGraphics guiGraphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
-            throw new UnsupportedOperationException("Implemented by MixinDropdownWidgetEntry");
-        }
-
-        public void actuallyRender(GuiGraphics guiGraphics, int x, int y) {
-            LatticeMultiversion.drawString(guiGraphics, DropdownWidget.this.font,
-                    Component.literal(this.value.toString()), x, y, -1);
+        @Override
+        public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float a) {
+            graphics.text(DropdownWidget.this.font,
+                Component.literal(this.value.toString()), this.getX(), this.getY(), -1);
         }
 
         @Override
-        public boolean lattice$keyPressed(IKeyEvent event, BooleanSupplier callSuper) {
-            if (event.lattice$isSelection()) {
+        public boolean keyPressed(KeyEvent event) {
+            if (event.isSelection()) {
                 DropdownWidget.this.updateValue(this.value);
                 DropdownWidget.this.showingSelectionDropdown = false;
             }
@@ -143,7 +182,7 @@ public abstract class DropdownWidget<T> extends Button implements WidgetExtraFun
         }
 
         @Override
-        public boolean lattice$mouseClicked(IMouseButtonEvent event, BooleanSupplier callSuper) {
+        public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
             DropdownWidget.this.updateValue(this.value);
 
             long currentTime = System.currentTimeMillis();
@@ -152,7 +191,7 @@ public abstract class DropdownWidget<T> extends Button implements WidgetExtraFun
             }
             this.lastClickedMillis = currentTime;
 
-            callSuper.getAsBoolean();
+            super.mouseClicked(event, doubleClick);
             return true;
         }
 

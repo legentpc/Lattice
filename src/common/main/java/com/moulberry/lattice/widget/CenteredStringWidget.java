@@ -1,8 +1,7 @@
 package com.moulberry.lattice.widget;
 
-import com.moulberry.lattice.multiversion.LatticeMultiversion;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.locale.Language;
@@ -25,7 +24,7 @@ public class CenteredStringWidget extends AbstractWidget {
         this.font = font;
     }
 
-    public void renderWidget(GuiGraphics guiGraphics, int i, int j, float f) {
+    public void extractWidgetRenderState(GuiGraphicsExtractor guiGraphics, int i, int j, float f) {
         Component component = this.getMessage();
         int widgetWidth = this.getWidth();
         int textWidth = font.width(component);
@@ -40,7 +39,7 @@ public class CenteredStringWidget extends AbstractWidget {
 
         int x = this.getX() + (widgetWidth - textWidth) / 2;
         int y = this.getY() + (this.getHeight() - this.font.lineHeight) / 2;
-        LatticeMultiversion.drawString(guiGraphics, this.font, formattedCharSequence, x, y, -1);
+        guiGraphics.text(this.font, formattedCharSequence, x, y, -1);
     }
 
     @Override

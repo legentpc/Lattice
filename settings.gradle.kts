@@ -8,4 +8,3 @@ pluginManagement {
 
 rootProject.name = "lattice"
 include("testmod")
-//include("testmod-neoforge")

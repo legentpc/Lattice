@@ -3,13 +3,12 @@ package com.moulberry.lattice;
 import com.moulberry.lattice.element.LatticeElement;
 import com.moulberry.lattice.element.LatticeElements;
 import com.moulberry.lattice.keybind.LatticeInputType;
-import com.moulberry.lattice.multiversion.*;
 import com.moulberry.lattice.widget.SubcategoryButton;
 import com.moulberry.lattice.widget.WidgetWithText;
 import com.moulberry.lattice.widget.WidgetExtraFunctionality;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.ComponentPath;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
 import net.minecraft.client.gui.components.events.GuiEventListener;
@@ -17,6 +16,9 @@ import net.minecraft.client.gui.layouts.LayoutElement;
 import net.minecraft.client.gui.navigation.FocusNavigationEvent;
 import net.minecraft.client.gui.navigation.ScreenDirection;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.ApiStatus;
@@ -28,7 +30,7 @@ import java.util.*;
 import java.util.function.BooleanSupplier;
 
 @ApiStatus.Internal
-public class LatticeConfigScreen extends Screen implements IGuiEventListener {
+public class LatticeConfigScreen extends Screen {
 
     private static final int SCROLL_BAR_WIDTH = 6;
 
@@ -354,12 +356,12 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
     }
 
     @Override
-    public boolean lattice$mouseClicked(IMouseButtonEvent event, BooleanSupplier callSuper) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         this.setScrollToSubcategory(null);
 
-        int mouseButton = event.lattice$button();
-        double mouseX = event.lattice$x();
-        double mouseY = event.lattice$y();
+        int mouseButton = event.button();
+        double mouseX = event.x();
+        double mouseY = event.y();
 
         if (this.currentExtraFunctionalityWidget != null && this.currentExtraFunctionalityWidget.listeningForRawKeyInput()) {
             sendRawInputToWidget(LatticeInputType.MOUSE, mouseButton, false);
@@ -392,7 +394,7 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
             }
         }
 
-        if (callSuper.getAsBoolean()) {
+        if (super.mouseClicked(event, doubleClick)) {
             var newExtraFunctionalityWidget = this.getExtraFunctionalityWidget();
             if (newExtraFunctionalityWidget != null) {
                 List<LatticeElements> switchToCategoryPath = newExtraFunctionalityWidget.switchToCategoryAfterClick();
@@ -448,9 +450,9 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
     }
 
     @Override
-    public boolean lattice$mouseReleased(IMouseButtonEvent event, BooleanSupplier callSuper) {
+    public boolean mouseReleased(MouseButtonEvent event) {
         if (this.currentExtraFunctionalityWidget != null && this.currentExtraFunctionalityWidget.listeningForRawKeyInput()) {
-            sendRawInputToWidget(LatticeInputType.MOUSE, event.lattice$button(), true);
+            sendRawInputToWidget(LatticeInputType.MOUSE, event.button(), true);
             return true;
         }
 
@@ -471,11 +473,11 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
             return false;
         }
 
-        return callSuper.getAsBoolean();
+        return super.mouseReleased(event);
     }
 
     @Override
-    public boolean lattice$mouseDragged(IMouseButtonEvent event, double dx, double dy, BooleanSupplier callSuper) {
+    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
         if (this.scrollingCategoryList) {
             this.categoryScrollAmount = calculateScrollFromDrag(dy, this.categoryContentHeight, this.categoryScrollAmount);
         }
@@ -486,7 +488,7 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
             this.searchScrollAmount = calculateScrollFromDrag(dy, this.searchContentHeight, this.searchScrollAmount);
         }
 
-        return callSuper.getAsBoolean();
+        return super.mouseDragged(event, dx, dy);
     }
 
     private double calculateScrollFromDrag(double dragY, int contentHeight, double scrollAmount) {
@@ -502,9 +504,8 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
         }
     }
 
-    // mouseScrolled implemented by MixinLatticeConfigScreen
-
-    public boolean mouseScrolledInternal(double mouseX, double mouseY, double scrollY) {
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         this.setScrollToSubcategory(null);
 
         if (this.shouldSuppressInput()) {
@@ -514,7 +515,7 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
         GuiEventListener popupWidget = this.getPopup();
         if (popupWidget != null) {
             if (popupWidget.isMouseOver(mouseX, mouseY)) {
-                return LatticeMultiversion.callMouseScrolled(popupWidget, mouseX, mouseY, scrollY);
+                return popupWidget.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
             }
             return true;
         }
@@ -558,9 +559,9 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
     }
 
     @Override
-    public boolean lattice$keyPressed(IKeyEvent event, BooleanSupplier callSuper) {
-        int keysym = event.lattice$keysym();
-        int scancode = event.lattice$scancode();
+    public boolean keyPressed(KeyEvent event) {
+        int keysym = event.key();
+        int scancode = event.scancode();
 
         if (this.currentExtraFunctionalityWidget != null && this.currentExtraFunctionalityWidget.listeningForRawKeyInput()) {
             if (keysym != GLFW.GLFW_KEY_UNKNOWN) {
@@ -581,12 +582,12 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
                 this.clearFocusInternal();
                 return true;
             }
-            if (event.lattice$passPressedTo(popupWidget)) {
+            if (popupWidget.keyPressed(event)) {
                 return true;
             }
             if (popupWidget instanceof ContainerEventHandler containerWidget) {
                 FocusNavigationEvent focusNavigationEvent = switch (keysym) {
-                    case GLFW.GLFW_KEY_TAB -> new FocusNavigationEvent.TabNavigation(!event.lattice$hasShiftDown());
+                    case GLFW.GLFW_KEY_TAB -> new FocusNavigationEvent.TabNavigation(!event.hasShiftDown());
                     case GLFW.GLFW_KEY_RIGHT -> new FocusNavigationEvent.ArrowNavigation(ScreenDirection.RIGHT);
                     case GLFW.GLFW_KEY_LEFT -> new FocusNavigationEvent.ArrowNavigation(ScreenDirection.LEFT);
                     case GLFW.GLFW_KEY_DOWN -> new FocusNavigationEvent.ArrowNavigation(ScreenDirection.DOWN);
@@ -620,11 +621,11 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
             return true;
         }
 
-        if (callSuper.getAsBoolean()) {
+        if (super.keyPressed(event)) {
             return true;
         }
 
-        if (keysym == GLFW.GLFW_KEY_F && event.lattice$hasCtrlOrCmdDown()) {
+        if (keysym == GLFW.GLFW_KEY_F && event.hasControlDownWithQuirk()) {
             this.setFocused(this.searchBox);
             return true;
         }
@@ -633,9 +634,9 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
     }
 
     @Override
-    public boolean lattice$keyReleased(IKeyEvent event, BooleanSupplier callSuper) {
-        int keysym = event.lattice$keysym();
-        int scancode = event.lattice$scancode();
+    public boolean keyReleased(KeyEvent event) {
+        int keysym = event.key();
+        int scancode = event.scancode();
 
         if (this.currentExtraFunctionalityWidget != null && this.currentExtraFunctionalityWidget.listeningForRawKeyInput()) {
             if (keysym != GLFW.GLFW_KEY_UNKNOWN) {
@@ -652,27 +653,27 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
 
         GuiEventListener popupWidget = this.getPopup();
         if (popupWidget != null) {
-            return event.lattice$passReleasedTo(popupWidget);
+            return popupWidget.keyReleased(event);
         }
 
-        return callSuper.getAsBoolean();
+        return super.keyReleased(event);
     }
 
     @Override
-    public boolean lattice$charTyped(ICharacterEvent event, BooleanSupplier callSuper) {
+    public boolean charTyped(CharacterEvent event) {
         if (this.shouldSuppressInput()) {
             return false;
         }
 
         GuiEventListener popupWidget = this.getPopup();
         if (popupWidget != null) {
-            return event.lattice$passCharTypedTo(popupWidget);
+            return popupWidget.charTyped(event);
         }
 
-        return callSuper.getAsBoolean();
+        return super.charTyped(event);
     }
 
-    private void renderDividersAndBackground(GuiGraphics guiGraphics) {
+    private void renderDividersAndBackground(GuiGraphicsExtractor guiGraphics) {
         if (this.searching) {
             // Header
             guiGraphics.fill(0, TOP_PADDING-2, this.width, TOP_PADDING-1, 0x33FFFFFF);
@@ -710,21 +711,14 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
             guiGraphics.fill(mid+2, TOP_PADDING, this.width, this.height-BOTTOM_PADDING, 0x70000000);
         }
 
-        guiGraphics.drawCenteredString(this.font, this.title, this.width/2, 8, 0xFFFFFFFF);
+        guiGraphics.centeredText(this.font, this.title, this.width/2, 8, 0xFFFFFFFF);
     }
 
-    /* 1.20.1 to 1.21.5:
     @Override
-    public void renderBackground(GuiGraphics guiGraphics) {
-        super.renderBackground(guiGraphics);
+    public void extractRenderState(@NotNull GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         this.renderDividersAndBackground(guiGraphics);
-    }*/
 
-    @Override
-    public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        // 1.21.6+: this.renderDividersAndBackground(guiGraphics);
-
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
+        super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
 
         WidgetExtraFunctionality popupHolder = this.currentExtraFunctionalityWidget;
         GuiEventListener popupWidget = popupHolder == null ? null : popupHolder.getPopup();
@@ -806,9 +800,7 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
                 }
             }
             if (popupWidget instanceof Renderable renderable) {
-                LatticeMultiversion.offsetZ(guiGraphics, 1024);
-                renderable.render(guiGraphics, mouseX, mouseY, partialTick);
-                LatticeMultiversion.offsetZ(guiGraphics, -1024);
+                renderable.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
             }
         }
     }
@@ -817,7 +809,7 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
         this.positionAndRenderSearchWidgets(null, 0, 0, 0);
     }
 
-    private void positionAndRenderSearchWidgets(@Nullable GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    private void positionAndRenderSearchWidgets(@Nullable GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         var widgets = this.elementSearcher.getSearchedWidgets(this.font, this.buttonWidth);
 
         if (widgets == null) {
@@ -850,7 +842,7 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
                 widget.setPosition(newX, newY);
             }
             if (guiGraphics != null) {
-                widget.render(guiGraphics, mouseX, mouseY, partialTick);
+                widget.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
             }
             currentY += widget.getHeight() + ITEM_PADDING;
         }
@@ -868,7 +860,7 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
         this.positionAndRenderCategoryWidgets(null, 0, 0, 0);
     }
 
-    private void positionAndRenderCategoryWidgets(@Nullable GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    private void positionAndRenderCategoryWidgets(@Nullable GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         int currentY = TOP_PADDING + ITEM_PADDING - 1;
 
         for (AbstractButton categoryButton : this.categoryButtons) {
@@ -878,7 +870,7 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
                 categoryButton.setPosition(newX, newY);
             }
             if (guiGraphics != null) {
-                categoryButton.render(guiGraphics, mouseX, mouseY, partialTick);
+                categoryButton.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
             }
             currentY += categoryButton.getHeight() + ITEM_PADDING;
         }
@@ -897,14 +889,14 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
         this.positionAndRenderOptionWidgets(null, 0, 0, 0);
     }
 
-    private void positionAndRenderOptionWidgets(@Nullable GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    private void positionAndRenderOptionWidgets(@Nullable GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         int currentY = TOP_PADDING + ITEM_PADDING;
 
         Component title = this.activeCategory == this.rootCategory ? LatticeTextComponents.ROOT_CATEGORY_NAME : this.activeCategory.title;
         if (title != null) {
             if (guiGraphics != null) {
                 Component titleWithUnderline = Component.empty().append(title).withStyle(ChatFormatting.UNDERLINE);
-                LatticeMultiversion.drawString(guiGraphics, this.font, titleWithUnderline, this.width/2+ITEM_PADDING+2, currentY - (int) this.optionScrollAmount,
+                guiGraphics.text(this.font, titleWithUnderline, this.width/2+ITEM_PADDING+2, currentY - (int) this.optionScrollAmount,
                         0xFFFFFFFF);
             }
             currentY += this.font.lineHeight + ITEM_PADDING;
@@ -921,7 +913,7 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
         }
     }
 
-    private int positionAndRenderOptionWidgetsRecursive(@Nullable GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, int x, List<AbstractWidget> widgets, int currentY) {
+    private int positionAndRenderOptionWidgetsRecursive(@Nullable GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick, int x, List<AbstractWidget> widgets, int currentY) {
         if (widgets == null) {
             return currentY;
         }
@@ -943,7 +935,7 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
                 widget.setPosition(x, newY);
             }
             if (guiGraphics != null) {
-                widget.render(guiGraphics, mouseX, mouseY, partialTick);
+                widget.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
             }
 
             boolean scrollTo = widget instanceof SubcategoryButton subcategoryButton && subcategoryButton.getSubcategory() == this.scrollToSubcategory;
@@ -999,19 +991,19 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
         return this.width/2 + this.buttonWidth/2 + ITEM_PADDING;
     }
 
-    private void renderCategoryListScrollBar(GuiGraphics guiGraphics) {
+    private void renderCategoryListScrollBar(GuiGraphicsExtractor guiGraphics) {
         this.renderScrollBar(guiGraphics, this.categoryContentHeight, this.categoryScrollAmount, this.getCategoryListScrollBarX());
     }
 
-    private void renderOptionListScrollBar(GuiGraphics guiGraphics) {
+    private void renderOptionListScrollBar(GuiGraphicsExtractor guiGraphics) {
         this.renderScrollBar(guiGraphics, this.optionContentHeight, this.optionScrollAmount, this.getOptionListScrollBarX());
     }
 
-    private void renderSearchListScrollBar(GuiGraphics guiGraphics) {
+    private void renderSearchListScrollBar(GuiGraphicsExtractor guiGraphics) {
         this.renderScrollBar(guiGraphics, this.searchContentHeight, this.searchScrollAmount, this.getSearchListScrollBarX());
     }
 
-    private void renderScrollBar(GuiGraphics guiGraphics, int contentHeight, double scrollAmount, int x) {
+    private void renderScrollBar(GuiGraphicsExtractor guiGraphics, int contentHeight, double scrollAmount, int x) {
         int maxScroll = this.maxScroll(contentHeight);
         if (maxScroll > 0) {
             double currentScroll = Math.min(scrollAmount, maxScroll);
@@ -1075,11 +1067,13 @@ public class LatticeConfigScreen extends Screen implements IGuiEventListener {
     }
 
     public void onClose() {
-        if (this.minecraft != null && this.closeTo != null) {
-            this.minecraft.setScreen(this.closeTo);
-        } else {
-            super.onClose();
-        }
+        try {
+            if (this.minecraft != null && this.closeTo != null) {
+                LatticeMultiversion.setScreen(this.minecraft, this.closeTo);
+                return;
+            }
+        } catch (Exception ignored) {}
+        super.onClose();
     }
 
 }
