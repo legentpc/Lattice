@@ -41,6 +41,7 @@ public abstract class DraggableListWidget<T> extends AbstractWidget implements W
     private boolean showingAddSelection = false;
     private AddSelection addSelection = null;
 
+    @SafeVarargs
     public DraggableListWidget(int x, int y, int width, Font font, Component title, List<T> initialValues,
                                boolean allowDeleting, boolean requireNonEmpty, T... allValues) {
         super(x, y, width, 0, title);
