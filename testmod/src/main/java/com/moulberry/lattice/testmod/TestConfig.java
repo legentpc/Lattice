@@ -16,6 +16,8 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -91,6 +93,10 @@ public class TestConfig {
         @LatticeOption(title = "Enum", description = "This is an enum as a dropdown", translate = false)
         @LatticeWidgetDropdown
         public Fruit enumDropdown = Fruit.APPLE;
+
+        @LatticeOption(title = "Enum list", description = "This is a list of enums as a draggable list. Drag rows to reorder", translate = false)
+        @LatticeWidgetDraggableList
+        public List<Fruit> enumDraggableList = new ArrayList<>(List.of(Fruit.APPLE, Fruit.ORANGE, Fruit.MULBERRY));
     }
 
     @LatticeCategory(name = "Text", translate = false)

@@ -18,6 +18,7 @@ import com.moulberry.lattice.annotation.widget.*;
 import com.moulberry.lattice.keybind.KeybindInterface;
 import com.moulberry.lattice.keybind.LatticeInputType;
 import com.moulberry.lattice.widget.DiscreteSlider;
+import com.moulberry.lattice.widget.DraggableListWidget;
 import com.moulberry.lattice.widget.DropdownWidget;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -32,6 +33,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -59,6 +61,7 @@ public class ElementReflection {
     private static final Set<Class<? extends Annotation>> widgetAnnotations = Set.of(
         LatticeWidgetButton.class,
         LatticeWidgetCustom.class,
+        LatticeWidgetDraggableList.class,
         LatticeWidgetDropdown.class,
         LatticeWidgetKeybind.class,
         LatticeWidgetMessage.class,
@@ -820,6 +823,47 @@ public class ElementReflection {
             } else {
                 throw new RuntimeException(fieldType + " isn't compatible with @LatticeWidgetDropdown");
             }
+        } else if (widgetAnnotation instanceof LatticeWidgetDraggableList draggableList) {
+            checkForUnexpectedAnnotations(field, LatticeWidgetDraggableList.class);
+
+            if (!List.class.isAssignableFrom(fieldType) || !(field.getGenericType() instanceof ParameterizedType parameterizedType)) {
+                throw new RuntimeException(fieldType + " isn't compatible with @LatticeWidgetDraggableList");
+            }
+            throwIfFinal(field);
+
+            Type[] typeArguments = parameterizedType.getActualTypeArguments();
+            Class<?> elementType = typeArguments.length == 1 && typeArguments[0] instanceof Class<?> clazz ? clazz : null;
+            if (elementType == null || !elementType.isEnum()) {
+                throw new RuntimeException(fieldType + " isn't compatible with @LatticeWidgetDraggableList, element type must be an enum");
+            }
+
+            Object[] values = elementType.getEnumConstants();
+            if (values.length == 0) {
+                throw new RuntimeException("Can't create option for enum " + elementType.getSimpleName() + " with zero elements");
+            }
+
+            boolean allowDeleting = draggableList.allowDeleting();
+            boolean requireNonEmpty = draggableList.requireNonEmpty();
+
+            var element = new LatticeElement((font, title, description, width) -> {
+                try {
+                    List<Object> initialValues = (List<Object>) field.get(config);
+                    return new DraggableListWidget<>(0, 0, width, font, title, initialValues, allowDeleting, requireNonEmpty, values) {
+                        @Override
+                        public void setValue(List<Object> value) {
+                            try {
+                                field.set(config, value);
+                            } catch (IllegalAccessException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    };
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            }, titleComponent, descriptionComponent);
+            element.showTitleSeparately(true);
+            return element;
         } else if (widgetAnnotation instanceof LatticeWidgetKeybind latticeWidgetKeybind) {
             checkForUnexpectedAnnotations(field, LatticeWidgetKeybind.class);
 
