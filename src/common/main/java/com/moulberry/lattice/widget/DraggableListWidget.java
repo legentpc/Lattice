@@ -197,7 +197,8 @@ public abstract class DraggableListWidget<T> extends AbstractWidget implements W
         if (target != this.dragIndex) {
             this.values.add(target, this.values.remove(this.dragIndex));
             this.dragIndex = target;
-            this.notifyValueChanged();
+            // Reordering doesn't change the row count, so the height/add-row recalc is skipped
+            this.setValue(new ArrayList<>(this.values));
         }
 
         return true;

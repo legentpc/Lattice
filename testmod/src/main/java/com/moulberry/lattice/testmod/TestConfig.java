@@ -97,6 +97,10 @@ public class TestConfig {
         @LatticeOption(title = "Enum list", description = "This is a list of enums as a draggable list. Drag rows to reorder", translate = false)
         @LatticeWidgetDraggableList
         public List<Fruit> enumDraggableList = new ArrayList<>(List.of(Fruit.APPLE, Fruit.ORANGE, Fruit.MULBERRY));
+
+        @LatticeOption(title = "Enum list (non-empty)", description = "This draggable list always keeps at least one row", translate = false)
+        @LatticeWidgetDraggableList(requireNonEmpty = true)
+        public List<Fruit> enumDraggableListNonEmpty = new ArrayList<>(List.of(Fruit.BANANA));
     }
 
     @LatticeCategory(name = "Text", translate = false)
